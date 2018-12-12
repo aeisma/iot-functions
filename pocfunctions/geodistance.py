@@ -42,24 +42,3 @@ class CalculateGeoDistance(BaseTransformer):
         latlon = pd.concat([lat, lon, prev_lat, prev_lon], axis=1)
         df[self.output_item] = latlon.apply(_calc_dist, axis=1)
         return df
-
-
-# Amersfoort
-lat1 = 52.1590354
-lon1 = 5.3076119
-
-# Apeldoorn
-lat2 = 52.211509
-lon2 = 5.9095931
-
-data = {
-    'id' : [1,1,1,1,1,2,2,2,2,2],
-    'lat' : [lat1, lat2, lat1, lat2, lat1, lat2, lat1, lat2, lat1, lat2],
-    'lon' : [lon1, lon2, lon1, lon2, lon1, lon2, lon1, lon2, lon1, lon2]
-}
-df = pd.DataFrame(data=data)
-df
-
-cdt = CalculateGeoDistance(input_item_lon='lon',input_item_lat='lat',output_item='dist')
-test_df = cdt.execute(df)
-test_df
