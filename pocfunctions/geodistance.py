@@ -6,7 +6,7 @@
 PACKAGE_URL = 'git+https://@github.com/aeisma/iot-functions.git@'
 
 import pandas as pd
-from iotfunctions.preprocessor import BaseTransformer
+from iotfunctions.preprocessor import BaseAggregator
 from math import pi, sin, cos, acos
 
 def _toRad(deg):
@@ -19,7 +19,7 @@ def _calc_dist(row):
     R = 6371  # Earth radius, gives distance in km
     return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
 
-class CalculateGeoDistance(BaseTransformer):
+class CalculateGeoDistance(BaseAggregator):
     '''
     Calculate geographical distance traveled in km forward from last item for the same entity instance
     '''
