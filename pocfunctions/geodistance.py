@@ -12,20 +12,6 @@ from math import pi, sin, cos, acos, nan
 def _toRad(deg):
     return deg * pi / 180
 
-def _calc_dist(row):
-    lat = row[1];
-    lon = row[2];
-    prevLat = row[3];
-    prevLon = row[4];
-    if ( (prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0) ):
-        phi1 = _toRad(lat)
-        phi2 = _toRad(prevLat)
-        delta_lambda = _toRad(prevLon - lon)
-        R = 6371  # Earth radius, gives distance in km
-        return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
-    else:
-        return nan;
-
 class CalculateGeoDistance(BaseTransformer):
     '''
     Calculate geographical spherical distance traveled in km
@@ -41,9 +27,23 @@ class CalculateGeoDistance(BaseTransformer):
         self.output_item = output_item
         super().__init__()
 
+    def _calc_dist(self, row):
+        lat = row[self.input_item_lat];
+        lon = row[self.input_item_lon];
+        prevLat = row[self.input_item_prev_lat];
+        prevLon = row[self.input_item_prev_lon];
+        if ( (prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0) ):
+            phi1 = _toRad(lat)
+            phi2 = _toRad(prevLat)
+            delta_lambda = _toRad(prevLon - lon)
+            R = 6371  # Earth radius, gives distance in km
+            return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
+        else:
+            return nan;
+
     def execute(self, df):
         df = df.copy()
-        df[self.output_item] = df.apply(_calc_dist, axis=1)
+        df[self.output_item] = df.apply(self._calc_dist, axis=1)
         return df
 
     '''
