@@ -7,17 +7,24 @@ PACKAGE_URL = 'git+https://@github.com/aeisma/iot-functions.git@'
 
 import pandas as pd
 from iotfunctions.preprocessor import BaseTransformer
-from math import pi, sin, cos, acos
+from math import pi, sin, cos, acos, nan
 
 def _toRad(deg):
     return deg * pi / 180
 
 def _calc_dist(row):
-    phi1 = _toRad(row[1])  # lat
-    phi2 = _toRad(row[3])  # prev_lat
-    delta_lambda = _toRad(row[4] - row[2])  # prev_lon - lon
-    R = 6371  # Earth radius, gives distance in km
-    return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
+    lat = row[1];
+    lon = row[2];
+    prevLat = row[3];
+    prevLon = row[4];
+    if ( (prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0) ):
+        phi1 = _toRad(lat)
+        phi2 = _toRad(prevLat)
+        delta_lambda = _toRad(prevLon - lon)
+        R = 6371  # Earth radius, gives distance in km
+        return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
+    else:
+        return nan;
 
 class CalculateGeoDistance(BaseTransformer):
     '''
@@ -34,6 +41,11 @@ class CalculateGeoDistance(BaseTransformer):
         self.output_item = output_item
         super().__init__()
 
+    def execute(self, df):
+        df = df.copy()
+        df[self.output_item] = df.apply(_calc_dist, axis=1)
+        return df
+
     '''
     # Run over a location series taking (current, previous) location tuples.
     # This would work if the AS data frame had a bigger window.
@@ -48,8 +60,3 @@ class CalculateGeoDistance(BaseTransformer):
         df[self.output_item] = latlon.apply(_calc_dist, axis=1)
         return df
     '''
-
-    def execute(self, df):
-        df = df.copy()
-        df[self.output_item] = df.apply(_calc_dist, axis=1)
-        return df
