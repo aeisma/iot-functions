@@ -37,7 +37,8 @@ class CalculateGeoDistance(BaseTransformer):
             phi2 = _toRad(prevLat)
             delta_lambda = _toRad(prevLon - lon)
             R = 6371  # Earth radius, gives distance in km
-            return acos(sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)) * R
+            a = max(min(1, sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)), -1);
+            return acos(a) * R
         else:
             return nan;
 
