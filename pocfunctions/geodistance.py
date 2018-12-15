@@ -14,7 +14,7 @@ def _toRad(deg):
 
 class CalculateGeoDistance(BaseTransformer):
     '''
-    Calculate geographical spherical distance traveled in km
+    Calculate geographical spherical distance traveled in km (by row)
     '''
     url = PACKAGE_URL
 
@@ -32,13 +32,15 @@ class CalculateGeoDistance(BaseTransformer):
         lon = row[self.input_item_lon];
         prevLat = row[self.input_item_prev_lat];
         prevLon = row[self.input_item_prev_lon];
-        if ( (prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0) ):
+        if ( (lat == prevLat and lon == prevLon) or
+             ((prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0)) ):
             phi1 = _toRad(lat)
             phi2 = _toRad(prevLat)
             delta_lambda = _toRad(prevLon - lon)
             R = 6371  # Earth radius, gives distance in km
-            a = max(min(1, sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)), -1);
-            return acos(a) * R
+            a = max(min(1, sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)), -1)
+            d = acos(a) * R
+            return d if d >= 0.001 else nan
         else:
             return nan;
 
@@ -47,17 +49,47 @@ class CalculateGeoDistance(BaseTransformer):
         df[self.output_item] = df.apply(self._calc_dist, axis=1)
         return df
 
+class CalculateGeoDistanceOver(BaseTransformer):
     '''
-    # Run over a location series taking (current, previous) location tuples.
-    # This would work if the AS data frame had a bigger window.
+    Calculate geographical spherical distance traveled in km (run over series)
+    '''
+    url = PACKAGE_URL
     execute_by = ['id']
+
+    def __init__(self, input_item_lat, input_item_lon, output_item):
+
+        self.input_item_lat = input_item_lat
+        self.input_item_lon = input_item_lon
+        self.input_item_prev_lat = 'prevLat'
+        self.input_item_prev_lon = 'prevLon'
+        self.output_item = output_item
+        super().__init__()
+
+    def _calc_dist(self, row):
+        lat = row[self.input_item_lat];
+        lon = row[self.input_item_lon];
+        prevLat = row[self.input_item_prev_lat];
+        prevLon = row[self.input_item_prev_lon];
+        if ( (lat == prevLat and lon == prevLon) or
+             ((prevLat != 0 or prevLon != 0) and (lat != 0 or lon != 0)) ):
+            phi1 = _toRad(lat)
+            phi2 = _toRad(prevLat)
+            delta_lambda = _toRad(prevLon - lon)
+            R = 6371  # Earth radius, gives distance in km
+            a = max(min(1, sin(phi1)*sin(phi2) + cos(phi1)*cos(phi2) * cos(delta_lambda)), -1)
+            d = acos(a) * R
+            return d if d >= 0.001 else nan
+        else:
+            return nan;
+
+    # Run over a location series taking (current, previous) location tuples.
+    # AS data frame requires a window > schedule interval.
     def _calc(self, df):
         df = df.copy()
         lat = df[self.input_item_lat][1:]
-        prev_lat = df[self.input_item_lat].shift()[1:].rename('prev_lat')
+        prev_lat = df[self.input_item_lat].shift()[1:].rename(self.input_item_prev_lat)
         lon = df[self.input_item_lon][1:]
-        prev_lon = df[self.input_item_lon].shift()[1:].rename('prev_lon')
+        prev_lon = df[self.input_item_lon].shift()[1:].rename(self.input_item_prev_lon)
         latlon = pd.concat([lat, lon, prev_lat, prev_lon], axis=1)
-        df[self.output_item] = latlon.apply(_calc_dist, axis=1)
+        df[self.output_item] = latlon.apply(self._calc_dist, axis=1)
         return df
-    '''
