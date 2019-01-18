@@ -50,7 +50,7 @@ class CalculateGeoDistance(BaseTransformer):
             df[self.output_item] = df.apply(self._calc_dist, axis=1)
         except Exception as e:
             print(df)
-            print(e)
+            raise
         return df
 
 class CalculateGeoDistanceOver(BaseTransformer):
@@ -100,5 +100,5 @@ class CalculateGeoDistanceOver(BaseTransformer):
                 df[self.output_item] = latlon.apply(self._calc_dist, axis=1)
             except Exception as e:
                 print(df)
-                print(e)
+                raise
         return df
